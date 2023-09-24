@@ -10,8 +10,8 @@ def get_all_menus():
     menus = MenuName.query.all()
     menu_dict = {}
     for menu in menus:
-        description = menu.description
-        if description:
+        if menu.descriptions:  # descriptions가 비어 있지 않은 경우
+            description = menu.descriptions[0]  # 첫 번째 description 객체를 가져옴
             menu_dict[menu.name] = {
                 'description': description.description,
                 'nutrients': description.nutrients
