@@ -24,13 +24,11 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db)
 
-    from .views import main_views, question_views, answer_views, food_views, image_processing_views
+    from .views import main_views, menu_views, image_processing_views
     from . import models
 
     # blueprint
     app.register_blueprint(main_views.bp)
-    # app.register_blueprint(question_views.bp)
-    # app.register_blueprint(answer_views.bp)
-    app.register_blueprint(food_views.bp)
+    app.register_blueprint(menu_views.bp)
     app.register_blueprint(image_processing_views.bp)
     return app

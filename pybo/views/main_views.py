@@ -5,10 +5,4 @@ bp = Blueprint('main', __name__, url_prefix='/')
 
 @bp.route('/')
 def index():
-    return 'Hello, Pybo!'
-
-
-@bp.route('/hello')
-def hello_pybo():
-    return 'Hello, Pybo!'
-
+    return '메뉴판 인식을 통한 음식 API'
