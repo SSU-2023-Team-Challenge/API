@@ -11,31 +11,29 @@ def get_all_menus():
 
     if not menus:  # 메뉴가 전혀 없는 경우
         return jsonify({
-            'status': 'fail',
             'message': 'No menus found.'
         }), 404
 
-    menu_list = []
+    menu_dict = {}
     for menu in menus:
-        menu_data = {'name': menu.name}
+        menu_name = menu.name
 
         if menu.description:
-            menu_data['description'] = menu.description
+            description = menu.description
         else:
-            menu_data['description'] = 'Menu description not found'
+            description = 'Menu description not found'
 
         if menu.image_url and menu.image_url.strip():
-            menu_data['image_url'] = menu.image_url
+            image_url = menu.image_url
         else:
-            menu_data['image_url'] = 'Image URL not found'
+            image_url = 'Image URL not found'
 
-        menu_list.append(menu_data)
+        menu_dict[menu_name] = {
+            'description': description,
+            'image_url': image_url
+        }
 
-    return jsonify({
-        'status': 'success',
-        'message': 'Menus retrieved successfully.',
-        'data': menu_list
-    })
+    return jsonify(menu_dict)
 
 
 @bp.route('/<string:menu_name>', methods=['GET'], strict_slashes=False)
