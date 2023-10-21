@@ -1,5 +1,6 @@
 from pybo import db
 from datetime import datetime
+from sqlalchemy import Text
 
 
 class MenuBoardImage(db.Model):
@@ -11,11 +12,11 @@ class MenuBoardImage(db.Model):
 class Menu(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    description = db.Column(db.Text(), nullable=True)
+    description = db.Column(db.Text(), nullable=True)  # 요약 설명으로 사용
+    place_of_origin = db.Column(Text, nullable=True)  # 원산지
     image_url = db.Column(db.String(3000))
     create_date = db.Column(db.DateTime(), default=datetime.utcnow)
 
-    # 역참조 설정(후보군을 위해, 설명 갈아끼기, 부정적인 평가가 누적될 시 설명, 이미지 테이블에서 하나를 뽑아 대체함.)
     descriptions = db.relationship('MenuDescription', backref='menu', lazy=True)
     images = db.relationship('MenuImage', backref='menu', lazy=True)
 

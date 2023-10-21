@@ -3,6 +3,8 @@ from pybo import db
 from pybo.models import Menu, MenuDescription, MenuImage
 
 bp = Blueprint('menu', __name__, url_prefix='/menu')
+import os
+
 
 
 @bp.route('/getAll', methods=['GET'], strict_slashes=False)
@@ -86,21 +88,21 @@ def add_menu():
 def add_menu_description_or_imageURL(menu_name):
     menu = Menu.query.filter_by(name=menu_name).first_or_404()
     data = request.get_json()
+
     description_text = data.get('description')
-    image_url = data.get('image_url')  # 이미지 URL 받기
+    image_url = data.get('image_url')
 
-    if not description_text and not image_url:  # 설명과 이미지 URL 모두 없는 경우만 에러 반환
-        return jsonify({'message': 'Either description or image_url is required'}), 400
+    # Check and handle possible error cases
+    error_messages = {
+        (True, True): 'Description and Image URL already exists',
+        (True, False): 'Description already exists but no Image URL',
+        (False, True): 'Image URL already exists but no Description',
+    }
+    error_msg = error_messages.get((bool(menu.description), bool(menu.image_url)))
 
-    # 이미 설명이나 이미지 URL이 있는 경우 에러 반환 -> PUT으로 처리해야함.
-    if menu.description and menu.image_url: # 설명과 이미지 URL 둘 다 존재
-        return jsonify({'message': 'Description and Image URL already exists'}), 400
-    elif description_text and menu.description: # 설명만 존재
-        return jsonify({'message': 'Description already exists but no Image URL'}), 400
-    elif image_url and menu.image_url: # 이미지 URL만 존재
-        return jsonify({'message': 'Image URL already exists but no Description'}), 400
+    if error_msg:
+        return jsonify({'message': error_msg}), 400
 
-    # description_text 또는 image_url이 제공되었는지 확인하고 제공된 경우에만 해당 필드를 업데이트
     if description_text:
         menu.description = description_text
     if image_url:
@@ -203,7 +205,7 @@ def delete_menu_description(menu_name):
     menu = Menu.query.filter_by(name=menu_name).first_or_404()
 
     # 원래 설명이나 이미지 URL이 없는 경우의 처리
-    if not menu.description :
+    if not menu.description:
         return jsonify({'message': 'Description not found'}), 400
 
     if menu.description:
@@ -230,36 +232,31 @@ def delete_menu_imageURL(menu_name):
     return jsonify({'message': 'Successfully deleted menu image URL'})
 
 
-from werkzeug.utils import secure_filename
-import os
-
-UPLOAD_FOLDER = 'uploads'
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+from pybo.utils.food_keyword_extractor import extract_menu_from_image
+from pybo.utils.wiki_crawling import get_info_and_image
 
 
-# 파일 확장자 확인
-def allowed_file(filename):
-    """허용된 파일 확장자인지 확인합니다."""
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
-@bp.route('/<string:menu>/add_image', methods=['POST'])
-def add_menu_image(menu):
-    menu = Menu.query.filter_by(name=menu).first_or_404()
+@bp.route('/process_image', methods=['POST'])
+def process_image():
     file = request.files.get('image')
-
-    if 'image' not in request.files:
+    if not file or file.filename == '':
         return jsonify({'message': '이미지 파일이 필요합니다'}), 400
 
-    if file.filename == '':
-        return jsonify({'message': '선택된 이미지 파일이 없습니다'}), 400
+    keywords = extract_menu_from_image(file)
+    if not keywords:
+        return jsonify({'message': '이미지에서 음식 키워드를 추출할 수 없습니다'}), 400
 
-    if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        file.save(os.path.join(UPLOAD_FOLDER, filename))
-        image = MenuImage(filename=filename, menu_id=menu.id)  # menu_id로 변경
-        db.session.add(image)
-        db.session.commit()
-        return jsonify({'message': '메뉴 이미지가 성공적으로 추가되었습니다'})
-    else:
-        return jsonify({'message': '허용되지 않은 파일 형식입니다'}), 400
+    for keyword in keywords:
+        menu = Menu.query.filter_by(name=keyword).first()
+        if not menu:
+            # get_info_and_image 함수를 호출하여 정보 가져오기
+            # 의문 1: 위키에 데이터가 없다면?! 페이지 리턴함수로 검사 후 없다면 구글 이미지 크롤링과 gpt로 설명, origin 만들기
+            place_of_origin, image_url, summary = get_info_and_image(keyword)
+
+            # description 대신 summary를 사용하여 Menu 객체 생성
+            new_menu = Menu(name=keyword, description=summary, image_url=image_url)
+            db.session.add(new_menu)
+
+    db.session.commit()  # 한 번의 커밋으로 모든 메뉴 항목 추가
+
+    return jsonify({'message': '처리 완료', 'keywords': keywords})

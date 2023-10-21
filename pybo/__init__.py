@@ -28,6 +28,8 @@ def create_app():
 
     from .views import main_views, menu_views, image_processing_views
     from . import models
+    import os
+    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/Users/kang-youngmin/projects/myproject/pybo/utils/tough-transport-396505-0f2b11b6df13.json'
 
     # blueprint
     app.register_blueprint(main_views.bp)
