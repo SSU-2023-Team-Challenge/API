@@ -24,7 +24,7 @@ def clean_list(menu_list):
 def extract_menu_from_image(img_path):
     # 구글 비젼 키랑 채찍피티 키! 여기있졍
     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/Users/kang-youngmin/projects/myproject/pybo/utils/tough-transport-396505-0f2b11b6df13.json'
-    openai.api_key = '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'
+    openai.api_key = 'your key'
 
     # Google Vision - OCR
     client_options = {'api_endpoint': 'eu-vision.googleapis.com'}
